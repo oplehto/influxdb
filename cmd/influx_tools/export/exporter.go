@@ -14,6 +14,7 @@ import (
 	"github.com/influxdata/influxdb/models"
 	"github.com/influxdata/influxdb/services/meta"
 	"github.com/influxdata/influxdb/tsdb"
+	"github.com/influxdata/influxql"
 )
 
 type exporterConfig struct {
@@ -21,6 +22,7 @@ type exporterConfig struct {
 	RP            string
 	ShardDuration time.Duration
 	Min, Max      uint64
+	Expr          string
 }
 
 type exporter struct {
@@ -33,6 +35,7 @@ type exporter struct {
 	d            time.Duration
 	sourceGroups []meta.ShardGroupInfo
 	targetGroups []meta.ShardGroupInfo
+	expr         influxql.Expr
 
 	// source data time range
 	startDate time.Time
@@ -56,7 +59,13 @@ func newExporter(server server.Interface, cfg *exporterConfig) (*exporter, error
 	if rpi == nil || err != nil {
 		return nil, fmt.Errorf("retention policy '%s' does not exist", cfg.RP)
 	}
-
+	var expr influxql.Expr
+	if cfg.Expr != "" {
+		expr, err = influxql.ParseExpr(cfg.Expr)
+		if err != nil {
+			return nil, fmt.Errorf("influxql expression '%s' failed to parse. Details: %s", cfg.Expr, err)
+		}
+	}
 	store := tsdb.NewStore(server.TSDBConfig().Dir)
 	if server.Logger() != nil {
 		store.WithLogger(server.Logger())
@@ -85,6 +94,7 @@ func newExporter(server server.Interface, cfg *exporterConfig) (*exporter, error
 		db:         cfg.Database,
 		rp:         cfg.RP,
 		d:          cfg.ShardDuration,
+		expr:       expr,
 	}, nil
 }
 
@@ -195,7 +205,7 @@ func (e *exporter) read(min, max time.Time) (*storage.ResultSet, error) {
 		End:      max.UnixNano(),
 	}
 
-	return e.store.Read(context.Background(), &req)
+	return e.store.Read(context.Background(), &req, e.expr)
 }
 
 func (e *exporter) Close() error {

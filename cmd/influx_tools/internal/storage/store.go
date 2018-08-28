@@ -6,6 +6,7 @@ import (
 
 	"github.com/influxdata/influxdb/services/meta"
 	"github.com/influxdata/influxdb/tsdb"
+	"github.com/influxdata/influxql"
 )
 
 type MetaClient interface {
@@ -26,9 +27,9 @@ type Store struct {
 }
 
 // Read creates a ResultSet that reads all points with a timestamp ts, such that start ≤ ts < end.
-func (s *Store) Read(ctx context.Context, req *ReadRequest) (*ResultSet, error) {
+func (s *Store) Read(ctx context.Context, req *ReadRequest, expr influxql.Expr) (*ResultSet, error) {
 	var cur seriesCursor
-	if ic, err := newIndexSeriesCursor(ctx, req.Shards); err != nil {
+	if ic, err := newIndexSeriesCursor(ctx, req.Shards, expr); err != nil {
 		return nil, err
 	} else if ic == nil {
 		return nil, nil

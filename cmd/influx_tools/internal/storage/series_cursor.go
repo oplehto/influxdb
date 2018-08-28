@@ -33,7 +33,7 @@ type indexSeriesCursor struct {
 	eof    bool
 }
 
-func newIndexSeriesCursor(ctx context.Context, shards []*tsdb.Shard) (*indexSeriesCursor, error) {
+func newIndexSeriesCursor(ctx context.Context, shards []*tsdb.Shard, expr influxql.Expr) (*indexSeriesCursor, error) {
 	queries, err := tsdb.CreateCursorIterators(ctx, shards)
 	if err != nil {
 		return nil, err
@@ -46,7 +46,7 @@ func newIndexSeriesCursor(ctx context.Context, shards []*tsdb.Shard) (*indexSeri
 	p := &indexSeriesCursor{row: seriesRow{query: queries}}
 
 	sg := tsdb.Shards(shards)
-	p.sqry, err = sg.CreateSeriesCursor(ctx, tsdb.SeriesCursorRequest{}, nil)
+	p.sqry, err = sg.CreateSeriesCursor(ctx, tsdb.SeriesCursorRequest{}, expr)
 	if p.sqry != nil && err == nil {
 		var itr query.Iterator
 		var fi query.FloatIterator

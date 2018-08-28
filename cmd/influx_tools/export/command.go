@@ -42,6 +42,7 @@ type Command struct {
 	format        string
 	r             rangeValue
 	conflictPath  string
+	expr          string
 	ignore        bool
 	print         bool
 }
@@ -119,7 +120,7 @@ func (cmd *Command) Run(args []string) (err error) {
 }
 
 func (cmd *Command) openExporter() (*exporter, error) {
-	cfg := &exporterConfig{Database: cmd.database, RP: cmd.rp, ShardDuration: cmd.shardDuration, Min: cmd.r.Min(), Max: cmd.r.Max()}
+	cfg := &exporterConfig{Database: cmd.database, RP: cmd.rp, ShardDuration: cmd.shardDuration, Expr: cmd.expr, Min: cmd.r.Min(), Max: cmd.r.Max()}
 	e, err := newExporter(cmd.server, cfg)
 	if err != nil {
 		return nil, err
@@ -133,6 +134,7 @@ func (cmd *Command) parseFlags(args []string) error {
 	fs.StringVar(&cmd.configPath, "config", "", "Config file")
 	fs.StringVar(&cmd.database, "database", "", "Database name")
 	fs.StringVar(&cmd.rp, "rp", "", "Retention policy name")
+	fs.StringVar(&cmd.expr, "expr", "", "InfluxQL expression to use for filtering")
 	fs.StringVar(&cmd.format, "format", "line", "Output format (line, binary)")
 	fs.StringVar(&cmd.conflictPath, "conflict-path", "", "File name for writing field conflicts using line protocol and gzipped")
 	fs.BoolVar(&cmd.ignore, "no-conflict-path", false, "Disable writing field conflicts to a file")
